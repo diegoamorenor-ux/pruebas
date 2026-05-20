@@ -11,28 +11,56 @@ export default function App() {
 
   const enviarPago = async () => {
     if (!target || !amount) {
-      alert('Por favor completa los campos');
+      setStatus('COMPLETA_LOS_CAMPOS');
+      setStatusColor('#ef4444');
       return;
     }
-    setStatus('PENDIENTE');
-    setStatusColor('#f59e0b');
-    const response = await fetch(`${API_URL}/api/transfer`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ target, amount })
-    });
-    const data = await response.json();
-    if (intervalId) clearInterval(intervalId);
-    const poll = window.setInterval(async () => {
-      const resStatus = await fetch(`${API_URL}/api/status/${data.id}`);
-      const statusData = await resStatus.json();
-      if (statusData.status === 'APROBADO') {
-        setStatus('APROBADO');
-        setStatusColor('#10b981');
-        clearInterval(poll);
+    try {
+      setStatus('PENDIENTE');
+      setStatusColor('#f59e0b');
+
+      const response = await fetch(`${API_URL}/api/transfer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target, amount })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error HTTP ${response.status}`);
       }
-    }, 500);
-    setIntervalId(poll);
+
+      const data = await response.json();
+
+      if (intervalId) clearInterval(intervalId);
+
+      const poll = window.setInterval(async () => {
+        try {
+          const resStatus = await fetch(`${API_URL}/api/status/${data.id}`);
+          const statusData = await resStatus.json();
+
+          setStatus(statusData.status);
+
+          if (statusData.status === 'APROBADO') {
+            setStatusColor('#10b981');
+            clearInterval(poll);
+          } else if (statusData.status === 'ERROR_TIMEOUT') {
+            setStatusColor('#ef4444');
+            clearInterval(poll);
+          } else {
+            setStatusColor('#f59e0b');
+          }
+        } catch {
+          setStatus('ERROR_CONSULTANDO_ESTADO');
+          setStatusColor('#ef4444');
+          clearInterval(poll);
+        }
+      }, 1000);
+
+      setIntervalId(poll);
+    } catch {
+      setStatus('ERROR_ENVIANDO_TRANSFERENCIA');
+      setStatusColor('#ef4444');
+    }
   };
 
   return (

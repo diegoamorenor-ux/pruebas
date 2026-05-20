@@ -4,7 +4,12 @@
   "description": "Pruebas de Automatización E2E para flujos asíncronos",
   "scripts": {
     "test": "playwright test",
-    "test:headed": "playwright test --headed"
+    "test:headed": "playwright test --headed",
+    "test:ui-polling": "playwright test -g \"TestPlan UI Polling\"",
+    "test:api-pool": "playwright test -g \"TestPlan API\"",
+    "test:distribucion": "playwright test -g \"TestPlan Distribución\"",
+    "report": "playwright show-report",
+    "install:browsers": "playwright install"
   },
   "devDependencies": {
     "@playwright/test": "^1.44.0"

@@ -4,11 +4,22 @@ const path = require('path');
 const { Kafka } = require('kafkajs');
 
 const app = express();
+// Permite consumir la API desde el frontend Vite (http://localhost:5173)
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
+});
 app.use(express.json());
 process.env.KAFKAJS_NO_PARTITIONER_WARNING = '1';
 
 const DB_PATH = path.join(__dirname, 'db.json');
 const KAFKA_BROKER = process.env.KAFKA_BROKER || 'localhost:9092';
+const PORT = Number(process.env.PORT || 3000);
 
 // Inicialización de cliente Kafka
 const kafka = new Kafka({
@@ -16,114 +27,119 @@ const kafka = new Kafka({
   brokers: [KAFKA_BROKER]
 });
 const producer = kafka.producer();
+let producerConnected = false;
 
 // Inicializar Productor
 async function initProducer() {
   try {
     await producer.connect();
+    producerConnected = true;
     console.log(' Conectado exitosamente al Broker de Kafka en: ' + KAFKA_BROKER);
   } catch (error) {
+    producerConnected = false;
     console.error(' Fallo al conectar con Kafka:', error);
   }
 }
 initProducer();
 
-// Servir la Interfaz de Usuario HTML (Frontend interactivo)
+async function ensureProducerConnected() {
+  if (producerConnected) {
+    return;
+  }
+  await producer.connect();
+  producerConnected = true;
+  console.log(' Productor reconectado a Kafka en: ' + KAFKA_BROKER);
+}
+
+async function publishTransferMessage(messagePayload) {
+  await ensureProducerConnected();
+
+  try {
+    await producer.send(messagePayload);
+    return;
+  } catch (firstError) {
+    // Reintento único tras reconexión para mitigar cortes transitorios del broker.
+    producerConnected = false;
+    await ensureProducerConnected();
+    await producer.send(messagePayload);
+  }
+}
+
+// Backend API puro: el frontend vive en /frontend (Vite/React)
 app.get('/', (req, res) => {
-  res.send(`
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-      <meta charset="UTF-8">
-      <title>Lite Bank Transacciones</title>
-      <style>
-        body { background: #0f172a; color: #fff; font-family: sans-serif; text-align: center; padding: 50px; }
-       .card { background: #1e293b; padding: 30px; border-radius: 12px; display: inline-block; border: 1px solid #334155; }
-        input, button { padding: 10px; font-size: 16px; margin: 10px; border-radius: 6px; border: none; }
-        button { background: #ffd100; color: #000; font-weight: bold; cursor: pointer; }
-        #status-box { margin-top: 20px; font-size: 24px; font-weight: bold; color: #f59e0b; }
-      </style>
-    </head>
-    <body>
-      <h1>Lite Bank - Portal de Pagos</h1>
-      <div class="card">
-        <input type="text" id="target" placeholder="Cuenta Destino (Ej: 98765)">
-        <input type="number" id="amount" placeholder="Monto ($)">
-        <br>
-        <button id="btn-pay" onclick="enviarPago()">Enviar Transferencia</button>
-        <div id="status-box">Estado: Esperando transacción...</div>
-      </div>
+  res.json({
+    service: 'lite-bank-backend',
+    status: 'OK',
+    message: 'Frontend separado. Usa el proyecto frontend para la UI.'
+  });
+});
 
-      <script>
-        let intervalId = null;
-
-        async function enviarPago() {
-          const target = document.getElementById('target').value;
-          const amount = document.getElementById('amount').value;
-          const statusBox = document.getElementById('status-box');
-
-          if(!target ||!amount) {
-            alert('Por favor completa los campos');
-            return;
-          }
-
-          statusBox.innerText = 'Estado: PENDIENTE';
-          statusBox.style.color = '#f59e0b';
-
-          const response = await fetch('/api/transfer', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ target, amount })
-          });
-          const data = await response.json();
-          
-          // Iniciar Polling (Sondeo constante del estado real en la BD)
-          if(intervalId) clearInterval(intervalId);
-          intervalId = setInterval(async () => {
-            const resStatus = await fetch('/api/status/' + data.id);
-            const statusData = await resStatus.json();
-            
-            if(statusData.status === 'APROBADO') {
-              statusBox.innerText = 'Estado: APROBADO';
-              statusBox.style.color = '#10b981';
-              clearInterval(intervalId);
-            }
-          }, 500);
-        }
-      </script>
-    </body>
-    </html>
-  `);
+app.get('/health', (req, res) => {
+  res.json({ status: 'UP' });
 });
 
 // Endpoint 1: Crear Transacción (Inyecta a Kafka)
 app.post('/api/transfer', async (req, res) => {
-  const { target, amount } = req.body;
+  const { target, amount, simulationProfile, speedFactor } = req.body;
   const transactionId = 'TX-' + Date.now();
+  const createdAt = Date.now();
+  const normalizedProfile = String(simulationProfile || 'RANDOM').toUpperCase();
 
   // Guardar estado inicial en la base de datos (db.json)
   const db = JSON.parse(fs.readFileSync(DB_PATH));
-  db.transactions[transactionId] = { target, amount, status: 'PENDIENTE' };
+  db.transactions[transactionId] = {
+    target,
+    amount,
+    status: 'PENDIENTE',
+    simulationProfile: normalizedProfile,
+    createdAt,
+    processedAt: null,
+    responseTimeMs: null,
+    workerBucket: null
+  };
   fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
 
   // Enviar evento de transacción a Kafka
+  const kafkaMessage = {
+    topic: 'transferencias-creadas',
+    messages: [
+      {
+        key: transactionId,
+        value: JSON.stringify({
+          target,
+          amount,
+          status: 'PENDIENTE',
+          simulationProfile: normalizedProfile,
+          createdAt,
+          speedFactor
+        })
+      }
+    ]
+  };
+
   try {
-    await producer.send({
-      topic: 'transferencias-creadas',
-      messages: [
-        {
-          key: transactionId,
-          value: JSON.stringify({ target, amount, status: 'PENDIENTE' })
-        }
-      ]
-    });
+    await publishTransferMessage(kafkaMessage);
     console.log(` Publicado en 'transferencias-creadas': ${transactionId}`);
   } catch (error) {
+    db.transactions[transactionId].status = 'ERROR_PUBLICACION';
+    db.transactions[transactionId].publicationError = String(error?.message || error);
+    fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
     console.error(' Fallo al publicar mensaje:', error);
+    return res.status(503).json({
+      id: transactionId,
+      status: 'ERROR_PUBLICACION',
+      message: 'No se pudo publicar en Kafka. Reintenta cuando el broker esté disponible.'
+    });
   }
 
   // Devolver respuesta HTTP 202 (Accepted) para emular la asincronía real
-  res.status(202).json({ id: transactionId, status: 'PENDIENTE' });
+  res.status(202).json({
+    id: transactionId,
+    status: 'PENDIENTE',
+    simulationProfile: normalizedProfile,
+    speedFactor,
+    createdAt
+  });
 });
 
 // Endpoint 2: Consultar estado (Sondeo por ID)
@@ -131,9 +147,18 @@ app.get('/api/status/:id', (req, res) => {
   const { id } = req.params;
   const db = JSON.parse(fs.readFileSync(DB_PATH));
   const tx = db.transactions[id] || { status: 'NO_ENCONTRADO' };
-  res.json({ id, status: tx.status });
+  res.json({ id, ...tx });
 });
 
-app.listen(3000, () => {
-  console.log('[APP] Servidor web listo en http://localhost:3000');
+const server = app.listen(PORT, () => {
+  console.log(`[APP] Servidor web listo en http://localhost:${PORT}`);
+});
+
+server.on('error', error => {
+  if (error && error.code === 'EADDRINUSE') {
+    console.error(`[APP] Puerto ${PORT} en uso. Ya existe otro servidor activo.`);
+    console.error('[APP] Cierra el proceso anterior o usa otro puerto con PORT=3001 npm run start-server');
+    process.exit(1);
+  }
+  throw error;
 });

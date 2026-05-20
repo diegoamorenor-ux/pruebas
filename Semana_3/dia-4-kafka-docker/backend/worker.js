@@ -13,6 +13,54 @@ const consumer = kafka.consumer({ groupId: 'bank-processing-group' });
 
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
+function randomBetween(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function resolveSimulation(simulationProfile) {
+  const profile = String(simulationProfile || 'RANDOM').toUpperCase();
+
+  switch (profile) {
+    case 'FAST_5':
+      return { delayMs: 5000, finalStatus: 'APROBADO', bucket: 'FAST_5' };
+    case 'FAST_10':
+      return { delayMs: 10000, finalStatus: 'APROBADO', bucket: 'FAST_10' };
+    case 'FAST_15':
+      return { delayMs: 15000, finalStatus: 'APROBADO', bucket: 'FAST_15' };
+    case 'SLOW_TIMEOUT':
+      return {
+        delayMs: randomBetween(40000, 60000),
+        finalStatus: 'ERROR_TIMEOUT',
+        bucket: 'SLOW_TIMEOUT'
+      };
+    case 'RANDOM':
+    default: {
+      // Regla de negocio: 80% casos <= 20s, 20% casos timeout 40-60s.
+      const isFast = Math.random() < 0.8;
+      if (isFast) {
+        return {
+          delayMs: randomBetween(5000, 20000),
+          finalStatus: 'APROBADO',
+          bucket: 'RANDOM_FAST'
+        };
+      }
+      return {
+        delayMs: randomBetween(40000, 60000),
+        finalStatus: 'ERROR_TIMEOUT',
+        bucket: 'RANDOM_SLOW_TIMEOUT'
+      };
+    }
+  }
+}
+
+function clampSpeedFactor(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return 1;
+  }
+  return Math.min(1, Math.max(0.05, parsed));
+}
+
 async function subscribeWhenTopicAvailable() {
   while (true) {
     try {
@@ -50,23 +98,37 @@ async function runWorker() {
         data: eventData
       }));
 
-      // Simulación de procesamiento asíncrono complejo (Retraso de 4 segundos)
-      console.log(` Procesando transacción ${txId}. Validando saldos...`);
-      await delay(4000);
+      // Simulación de procesamiento asíncrono complejo (Retraso configurable, 10s por defecto)
+      const simulation = resolveSimulation(eventData.simulationProfile);
+      const speedFactor = clampSpeedFactor(eventData.speedFactor);
+      const finalDelayMs = Math.max(200, Math.floor(simulation.delayMs * speedFactor));
 
-      // Actualizar el estado en db.json a "APROBADO"
+      console.log(
+        ` Procesando ${txId} | profile=${eventData.simulationProfile || 'RANDOM'} | bucket=${simulation.bucket} | delay=${finalDelayMs}ms`
+      );
+      await delay(finalDelayMs);
+
+      // Actualizar resultado final en db.json
       const db = JSON.parse(fs.readFileSync(DB_PATH));
       if (db.transactions[txId]) {
-        db.transactions[txId].status = 'APROBADO';
+        const createdAt = Number(db.transactions[txId].createdAt || Date.now());
+        const processedAt = Date.now();
+        db.transactions[txId].status = simulation.finalStatus;
+        db.transactions[txId].workerBucket = simulation.bucket;
+        db.transactions[txId].processedAt = processedAt;
+        db.transactions[txId].responseTimeMs = processedAt - createdAt;
+        db.transactions[txId].effectiveDelayMs = finalDelayMs;
         fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
         
         console.log(JSON.stringify({
           timestamp: new Date().toISOString(),
           level: "INFO",
           service: "bank-worker",
-          message: "Transacción procesada y aprobada con éxito",
+          message: "Transacción procesada",
           transactionId: txId,
-          status: "APROBADO"
+          status: simulation.finalStatus,
+          bucket: simulation.bucket,
+          effectiveDelayMs: finalDelayMs
         }));
       }
     }
