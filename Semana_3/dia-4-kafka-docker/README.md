@@ -1,6 +1,8 @@
 # Día 4: Arquitectura de Eventos y Automatización QA
 
-Este día incluye:
+Este dia usa una app de clase (simple) para practicar un flujo asincrono end-to-end.
+
+Este ejercicio incluye:
 - Backend Node.js (Express + KafkaJS)
 - Frontend React + Vite + TypeScript
 - Pruebas E2E con Playwright
@@ -35,3 +37,8 @@ Este día incluye:
    cd tests
    npx playwright test --headed
    ```
+
+## Objetivo de aprendizaje
+
+- Ver el cambio de estado `PENDIENTE -> APROBADO` despues del procesamiento asincrono.
+- Entender por que en E2E se debe esperar/pollear estado y no asumir respuesta inmediata.

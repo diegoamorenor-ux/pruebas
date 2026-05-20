@@ -1,9 +1,0 @@
-{
-  "recommendations": [
-    "ms-java.extension-pack-for-java",
-    "ms-java.test-runner",
-    "vscjava.vscode-maven",
-    "ms-playwright.playwright",
-    "Cypress-io.cypress"
-  ]
-}
