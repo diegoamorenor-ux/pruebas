@@ -1,0 +1,55 @@
+{
+  "folders": [
+    {
+      "path": "Selenium/Java/clean/curso/e2e",
+      "name": "selenium-java-clean-e2e"
+    },
+    {
+      "path": "Selenium/Java/clean/curso/api",
+      "name": "selenium-java-clean-api"
+    },
+    {
+      "path": "Selenium/Java/maven/curso/e2e",
+      "name": "selenium-java-maven-e2e"
+    },
+    {
+      "path": "Selenium/Java/maven/curso/api",
+      "name": "selenium-java-maven-api"
+    },
+    {
+      "path": "Playwright/Java/maven/curso/e2e",
+      "name": "playwright-java-maven-e2e"
+    },
+    {
+      "path": "Playwright/Java/maven/curso/api",
+      "name": "playwright-java-maven-api"
+    },
+    {
+      "path": "Playwright/javascript/npm/curso/e2e",
+      "name": "playwright-js-npm-e2e"
+    },
+    {
+      "path": "Playwright/javascript/npm/curso/api",
+      "name": "playwright-js-npm-api"
+    },
+    {
+      "path": "Playwright/TypeScript/npm/curso/e2e",
+      "name": "playwright-ts-npm-e2e"
+    },
+    {
+      "path": "Playwright/TypeScript/npm/curso/api",
+      "name": "playwright-ts-npm-api"
+    },
+    {
+      "path": "Cypress/JavaScript/npm/curso/e2e",
+      "name": "cypress-js-npm-e2e"
+    },
+    {
+      "path": "Cypress/JavaScript/npm/curso/api",
+      "name": "cypress-js-npm-api"
+    }
+  ],
+  "settings": {
+    "testing.automaticallyOpenPeekView": "failureInVisibleDocument"
+  }
+}

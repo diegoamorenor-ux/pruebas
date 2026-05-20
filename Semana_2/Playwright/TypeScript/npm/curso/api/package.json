@@ -1,0 +1,16 @@
+{
+  "name": "dia2-playwright-typescript-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pruebas API con Playwright + TypeScript.",
+  "scripts": {
+    "test": "playwright test",
+    "typecheck": "tsc --noEmit",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.60.0",
+    "@types/node": "25.7.0",
+    "typescript": "6.0.3"
+  }
+}

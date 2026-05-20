@@ -1,0 +1,34 @@
+{
+  "transactions": {
+    "TX-1779306429533": {
+      "target": "99999",
+      "amount": "150",
+      "status": "APROBADO"
+    },
+    "TX-1779306430065": {
+      "target": "12345",
+      "amount": "500",
+      "status": "APROBADO"
+    },
+    "TX-1779306969934": {
+      "target": "99999",
+      "amount": "150",
+      "status": "APROBADO"
+    },
+    "TX-1779306970286": {
+      "target": "12345",
+      "amount": "500",
+      "status": "APROBADO"
+    },
+    "TX-1779307482790": {
+      "target": "99999",
+      "amount": "150",
+      "status": "APROBADO"
+    },
+    "TX-1779307483359": {
+      "target": "12345",
+      "amount": "500",
+      "status": "APROBADO"
+    }
+  }
+}

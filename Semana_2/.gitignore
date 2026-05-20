@@ -1,0 +1,13 @@
+.tools/
+**/target/
+**/node_modules/
+**/playwright-report/
+**/test-results/
+**/blob-report/
+**/evidencias/
+**/cypress/screenshots/
+**/cypress/videos/
+**/cypress/downloads/
+**/surefire-reports/
+**/.cache/
+**/*.log

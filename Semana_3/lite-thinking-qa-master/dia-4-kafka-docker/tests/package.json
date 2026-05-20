@@ -1,0 +1,12 @@
+{
+  "name": "qa-playwright-suite",
+  "version": "1.0.0",
+  "description": "Pruebas de Automatización E2E para flujos asíncronos",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0"
+  }
+}

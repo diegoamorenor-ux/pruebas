@@ -1,0 +1,15 @@
+{
+  "name": "dia2-cypress-javascript",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Ejemplos Cypress con POM clasico/separado y comparativa de locators.",
+  "scripts": {
+    "test": "cypress run",
+    "test:headed": "cypress run --headed",
+    "open": "cypress open"
+  },
+  "devDependencies": {
+    "@testing-library/cypress": "latest",
+    "cypress": "latest"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "dia2-cypress-javascript-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pruebas API con Cypress y cy.request.",
+  "scripts": {
+    "test": "cypress run",
+    "test:headed": "cypress run --headed",
+    "open": "cypress open"
+  },
+  "devDependencies": {
+    "cypress": "latest"
+  }
+}
