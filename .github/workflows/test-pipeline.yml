@@ -22,7 +22,7 @@ jobs:
 
       - name: 3. Levantar Infraestructura de Kafka (Docker Compose)
         run: |
-          docker-compose -f Semana_3/dia-4-kafka-docker/docker-compose.yml up -d
+          docker compose -f Semana_3/dia-4-kafka-docker/docker-compose.yml up -d
           echo "Esperando que Kafka-Broker y Kafka-UI estén completamente inicializados..."
           sleep 15
           docker ps
