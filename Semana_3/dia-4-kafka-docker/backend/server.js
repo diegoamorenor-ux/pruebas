@@ -4,7 +4,10 @@ const path = require('path');
 const { Kafka } = require('kafkajs');
 
 const app = express();
-// Permite consumir la API desde el frontend Vite (http://localhost:5173)
+// Servir archivos estáticos del frontend
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+// Permite consumir la API desde el frontend
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
@@ -142,12 +145,83 @@ app.post('/api/transfer', async (req, res) => {
   });
 });
 
+// Endpoint 1b: Registrar Usuario (Inyecta a Kafka)
+app.post('/api/register', async (req, res) => {
+  const { nombre, email, password } = req.body;
+  if (!nombre || !email || !password) {
+    return res.status(400).json({ status: 'ERROR_VALIDACION', message: 'Nombre, email y contraseña son obligatorios.' });
+  }
+
+  const userId = 'USR-' + Date.now();
+  const createdAt = Date.now();
+
+  // Guardar estado inicial en la base de datos (db.json)
+  const db = JSON.parse(fs.readFileSync(DB_PATH));
+  db.transactions[userId] = {
+    nombre,
+    email,
+    password,
+    status: 'Procesando',
+    createdAt,
+    processedAt: null
+  };
+  fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
+
+  // Enviar evento de transacción a Kafka
+  const kafkaMessage = {
+    topic: 'registro-usuarios',
+    messages: [
+      {
+        key: userId,
+        value: JSON.stringify({
+          userId,
+          nombre,
+          email,
+          password,
+          status: 'Procesando',
+          createdAt
+        })
+      }
+    ]
+  };
+
+  try {
+    await publishTransferMessage(kafkaMessage);
+    console.log(` Publicado en 'registro-usuarios': ${userId}`);
+  } catch (error) {
+    db.transactions[userId].status = 'ERROR_PUBLICACION';
+    db.transactions[userId].publicationError = String(error?.message || error);
+    fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
+    console.error(' Fallo al publicar mensaje:', error);
+    return res.status(503).json({
+      id: userId,
+      status: 'ERROR_PUBLICACION',
+      message: 'No se pudo publicar en Kafka. Reintenta cuando el broker esté disponible.'
+    });
+  }
+
+  // Devolver respuesta HTTP 202 (Accepted) para emular la asincronía real
+  res.status(202).json({
+    id: userId,
+    status: 'Procesando',
+    createdAt
+  });
+});
+
 // Endpoint 2: Consultar estado (Sondeo por ID)
 app.get('/api/status/:id', (req, res) => {
   const { id } = req.params;
   const db = JSON.parse(fs.readFileSync(DB_PATH));
   const tx = db.transactions[id] || { status: 'NO_ENCONTRADO' };
   res.json({ id, ...tx });
+});
+
+// Para cualquier otra ruta que no sea de API, responder con el index.html
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
+  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
 });
 
 const server = app.listen(PORT, () => {

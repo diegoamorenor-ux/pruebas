@@ -65,6 +65,7 @@ async function subscribeWhenTopicAvailable() {
   while (true) {
     try {
       await consumer.subscribe({ topic: 'transferencias-creadas', fromBeginning: false });
+      await consumer.subscribe({ topic: 'registro-usuarios', fromBeginning: false });
       return;
     } catch (error) {
       if (error && (error.type === 'UNKNOWN_TOPIC_OR_PARTITION' || error.code === 3)) {
@@ -79,9 +80,9 @@ async function subscribeWhenTopicAvailable() {
 
 async function runWorker() {
   await consumer.connect();
-  // El consumidor se suscribe al casillero específico de transferencias creadas
+  // El consumidor se suscribe a los casilleros específicos
   await subscribeWhenTopicAvailable();
-  console.log(" Escuchando eventos en el tópico 'transferencias-creadas'...");
+  console.log(" Escuchando eventos en 'transferencias-creadas' y 'registro-usuarios'...");
 
   await consumer.run({
     eachMessage: async ({ topic, partition, message }) => {
@@ -93,12 +94,42 @@ async function runWorker() {
         timestamp: new Date().toISOString(),
         level: "INFO",
         service: "bank-worker",
-        message: "Evento recibido de Kafka",
+        message: `Evento recibido de Kafka en tópico ${topic}`,
         transactionId: txId,
         data: eventData
       }));
 
-      // Simulación de procesamiento asíncrono complejo (Retraso configurable, 10s por defecto)
+      // Procesar Registro de Usuario
+      if (topic === 'registro-usuarios') {
+        // Tarda aproximadamente 3 a 5 segundos (ej. 4 segundos fijos para consistencia y estabilidad)
+        const delayMs = randomBetween(3000, 5000);
+        console.log(` Procesando Registro de Usuario ${txId} | delay=${delayMs}ms`);
+        await delay(delayMs);
+
+        // Actualizar resultado final en db.json
+        const db = JSON.parse(fs.readFileSync(DB_PATH));
+        if (db.transactions[txId]) {
+          const createdAt = Number(db.transactions[txId].createdAt || Date.now());
+          const processedAt = Date.now();
+          db.transactions[txId].status = 'Usuario Creado Exitosamente';
+          db.transactions[txId].processedAt = processedAt;
+          db.transactions[txId].responseTimeMs = processedAt - createdAt;
+          fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
+
+          console.log(JSON.stringify({
+            timestamp: new Date().toISOString(),
+            level: "INFO",
+            service: "bank-worker",
+            message: "Registro de usuario procesado exitosamente",
+            userId: txId,
+            status: "Usuario Creado Exitosamente",
+            effectiveDelayMs: delayMs
+          }));
+        }
+        return;
+      }
+
+      // Procesar Transferencia Bancaria (Legacy)
       const simulation = resolveSimulation(eventData.simulationProfile);
       const speedFactor = clampSpeedFactor(eventData.speedFactor);
       const finalDelayMs = Math.max(200, Math.floor(simulation.delayMs * speedFactor));

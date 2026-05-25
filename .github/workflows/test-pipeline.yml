@@ -1,0 +1,67 @@
+name: Lite Bank QA Automation E2E Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  run-e2e-tests:
+    name: Ejecución de Pruebas E2E (Playwright + Kafka + Docker)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1. Descargar Código del Repositorio
+        uses: actions/checkout@v4
+
+      - name: 2. Configurar Entorno Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 3. Levantar Infraestructura de Kafka (Docker Compose)
+        run: |
+          docker-compose -f Semana_3/dia-4-kafka-docker/docker-compose.yml up -d
+          echo "Esperando que Kafka-Broker y Kafka-UI estén completamente inicializados..."
+          sleep 15
+          docker ps
+
+      - name: 4. Instalar Dependencias del Backend
+        run: |
+          cd Semana_3/dia-4-kafka-docker/backend
+          npm install
+
+      - name: 5. Instalar Dependencias y Compilar el Frontend
+        run: |
+          cd Semana_3/dia-4-kafka-docker/frontend
+          npm install
+          npm run build
+
+      - name: 6. Instalar Dependencias de Pruebas (Playwright)
+        run: |
+          cd Semana_3/dia-4-kafka-docker/tests
+          npm install
+          npx playwright install --with-deps
+
+      - name: 7. Iniciar Backend (Servidor Consolidado) y Worker en Segundo Plano
+        run: |
+          cd Semana_3/dia-4-kafka-docker/backend
+          npm run start-server &
+          npm run start-worker &
+          
+          echo "Esperando 8 segundos para que los servicios estén listos..."
+          sleep 8
+
+      - name: 8. Ejecutar Pruebas E2E de Registro Asíncrono (Headless, Secuencial)
+        run: |
+          cd Semana_3/dia-4-kafka-docker/tests
+          npx playwright test registro-async.spec.js --workers=1
+
+      - name: 9. Guardar Reporte de Playwright en caso de Fallo (Puntos Extra)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: Semana_3/dia-4-kafka-docker/tests/playwright-report/
+          retention-days: 5

@@ -1031,6 +1031,60 @@
       "responseTimeMs": 7293,
       "workerBucket": "RANDOM_FAST",
       "effectiveDelayMs": 7278
+    },
+    "USR-1779670902203": {
+      "nombre": "Usuario Test 1779670902029",
+      "email": "test-1779670902029@litebank.com",
+      "password": "PasswordSecure123",
+      "status": "Usuario Creado Exitosamente",
+      "createdAt": 1779670902203,
+      "processedAt": 1779670905639,
+      "responseTimeMs": 3436
+    },
+    "USR-1779670902215": {
+      "nombre": "Usuario Test 1779670902028",
+      "email": "test-1779670902028@litebank.com",
+      "password": "PasswordSecure123",
+      "status": "Usuario Creado Exitosamente",
+      "createdAt": 1779670902215,
+      "processedAt": 1779670914353,
+      "responseTimeMs": 12138
+    },
+    "USR-1779670902217": {
+      "nombre": "Usuario Test 1779670902028",
+      "email": "test-1779670902028@litebank.com",
+      "password": "PasswordSecure123",
+      "status": "Usuario Creado Exitosamente",
+      "createdAt": 1779670902217,
+      "processedAt": 1779670910003,
+      "responseTimeMs": 7786
+    },
+    "USR-1779670923953": {
+      "nombre": "Usuario Test 1779670923876",
+      "email": "test-1779670923876@litebank.com",
+      "password": "PasswordSecure123",
+      "status": "Usuario Creado Exitosamente",
+      "createdAt": 1779670923953,
+      "processedAt": 1779670928714,
+      "responseTimeMs": 4761
+    },
+    "USR-1779670929302": {
+      "nombre": "Usuario Test 1779670929221",
+      "email": "test-1779670929221@litebank.com",
+      "password": "PasswordSecure123",
+      "status": "Usuario Creado Exitosamente",
+      "createdAt": 1779670929302,
+      "processedAt": 1779670932563,
+      "responseTimeMs": 3261
+    },
+    "USR-1779670934120": {
+      "nombre": "Usuario Test 1779670934057",
+      "email": "test-1779670934057@litebank.com",
+      "password": "PasswordSecure123",
+      "status": "Usuario Creado Exitosamente",
+      "createdAt": 1779670934120,
+      "processedAt": 1779670938558,
+      "responseTimeMs": 4438
     }
   }
 }
