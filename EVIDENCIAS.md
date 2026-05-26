@@ -1,10 +1,18 @@
-# Reporte de Evidencias: Certificación Avanzada de Automatización E2E
+# Reporte de Evidencias: Automatización Front-End
 
 Este documento consolida las evidencias requeridas para validar la correcta asimilación de los conceptos de **Patrón de Diseño POM**, **Arquitecturas Asíncronas (Kafka, Consistencia Eventual)** y **Orquestación en la Nube (Docker, CI/CD)**.
 
 ---
 
 ## 🛠️ FASE 1: Preparación del Entorno Local (Docker)
+
+1. Utiliza el archivo docker-compose.yml proporcionado en clase para levantar el ecosistema (Frontend de prueba, Kafka Broker y Kafka-UI).
+
+2. Asegúrate de que los contenedores estén corriendo ejecutando docker ps en tu terminal.
+
+3. Ingresa a la interfaz del Frontend simulado (http://localhost:3000) y realiza un registro manual para entender cómo se comporta la aplicación (observa el mensaje de "Procesando" y luego el cambio a "Usuario Creado Exitosamente").
+
+Entregable Fase 1:
 
 Levantamos exitosamente todo el ecosistema de microservicios, bases de datos, Kafka Broker y Kafka-UI en Docker. Además, creamos el tópico para la comunicación del flujo asíncrono.
 
@@ -18,7 +26,15 @@ A continuación, se adjunta la captura de pantalla de **Kafka-UI** en `http://lo
 
 ## 🎭 FASE 2: Automatización Resiliente (Playwright con Patrón POM)
 
-Implementamos un script de pruebas extremo a extremo (E2E) con **Playwright** en JavaScript que navega al formulario de registro, ingresa los datos y valida de forma resiliente el flujo asíncrono implementando **Polling Inteligente** (sin esperas duras) con un timeout máximo de 10 segundos.
+1. En tu IDE (VS Code, IntelliJ), crea un nuevo script de prueba llamado registro-async.spec.js (o .java).
+
+2. Patrón POM: Crea una clase RegistroPage que contenga los localizadores (selectores CSS o XPath) para los campos de: Nombre, Email, Contraseña, el botón de "Registrar" y el cuadro de estado (status).
+
+3. Lógica del Test: ○ Navega a la página de registro. ○ Rellena el formulario con datos de prueba. ○ Haz clic en "Registrar".
+
+4. El Reto Principal (Polling): Implementa la validación del resultado. NO utilices esperas duras (ej. sleep(5000)). Debes utilizar la estrategia de Polling inteligente de tu framework para esperar dinámicamente hasta que el cuadro de estado cambie al texto final de éxito, configurando un timeout máximo de 10 segundos.
+
+Entregable Fase 2:
 
 ### 📄 1. Código Fuente de la Clase POM (`RegistroPage.js`)
 *Ubicación:* `Semana_3/dia-4-kafka-docker/tests/RegistroPage.js`
@@ -112,6 +128,16 @@ Running 3 tests using 1 worker
 ---
 
 ## ☁️ FASE 3: Orquestación en la Nube (CI/CD TestOps)
+
+1. Sube tu proyecto de automatización a un repositorio público (o privado) en GitHub.
+
+2. Crea la estructura de carpetas necesaria para GitHub Actions (.github/workflows/).
+
+3. Crea un archivo YAML llamado test-pipeline.yml.
+
+4. Configura el YAML para que: ○ Se dispare (on:) cada vez que hagas un push a la rama principal. ○ Utilice un runner de Ubuntu (runs-on: ubuntu-latest). ○ Instale las dependencias de tu proyecto. ○ Ejecute tu script de prueba en modo Headless.
+
+5. (Opcional - Puntos Extra): Agrega un paso en tu YAML para guardar el reporte HTML de la prueba como un Artefacto (Artifact) en GitHub si el test llega a fallar.
 
 Subimos el código al repositorio personal del estudiante y diseñamos el pipeline de integración continua con **GitHub Actions** en `.github/workflows/test-pipeline.yml` utilizando Docker Compose y runners modernos.
 
