@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 const TERMINAL_STATUSES = new Set(['APROBADO', 'ERROR_TIMEOUT']);
 
 async function createTransfer(request, { target, amount, simulationProfile = 'RANDOM', speedFactor = 1 }) {
-  const response = await request.post('http://localhost:3000/api/transfer', {
+  const response = await request.post('http://127.0.0.1:3000/api/transfer', {
     data: { target, amount, simulationProfile, speedFactor }
   });
   expect(response.ok()).toBeTruthy();
@@ -15,7 +15,7 @@ async function waitForTerminalStatus(request, txId, timeoutMs = 30000) {
   let lastPayload = null;
 
   while (Date.now() - startedAt < timeoutMs) {
-    const response = await request.get(`http://localhost:3000/api/status/${txId}`);
+    const response = await request.get(`http://127.0.0.1:3000/api/status/${txId}`);
     expect(response.ok()).toBeTruthy();
     lastPayload = await response.json();
 
@@ -39,7 +39,7 @@ test.describe('Automatización de Flujos Asíncronos con Kafka', () => {
       speedFactor: 0.1
     });
 
-    const response = await request.get(`http://localhost:3000/api/status/${tx.id}`);
+    const response = await request.get(`http://127.0.0.1:3000/api/status/${tx.id}`);
     const payload = await response.json();
     expect(payload.status).toBe('PENDIENTE');
   });
@@ -64,7 +64,7 @@ test.describe('Automatización de Flujos Asíncronos con Kafka', () => {
         await new Promise(resolve => setTimeout(resolve, remaining));
       }
 
-      const statusResponse = await request.get(`http://localhost:3000/api/status/${tx.id}`);
+      const statusResponse = await request.get(`http://127.0.0.1:3000/api/status/${tx.id}`);
       const statusPayload = await statusResponse.json();
       const currentStatus = statusPayload.status;
       checkpoints.push({

@@ -1,7 +1,7 @@
 class RegistroPage {
   constructor(page) {
     this.page = page;
-    // CSS Locators for registration fields and status
+    // Localizadores CSS para los campos de registro y estado
     this.nombreInput = page.locator('#nombre');
     this.emailInput = page.locator('#email');
     this.passwordInput = page.locator('#password');
@@ -10,7 +10,7 @@ class RegistroPage {
   }
 
   async navigate() {
-    // Navigate to local registration page
+    // Navegar a la página de registro local
     await this.page.goto('http://127.0.0.1:3000');
   }
 
